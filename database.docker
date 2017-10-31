@@ -1,0 +1,9 @@
+FROM mysql:latest
+
+MAINTAINER Jiayu Shen
+
+RUN chown -R mysql /var/lib/mysql/
+
+CMD ["mysqld"]
+
+EXPOSE 3306

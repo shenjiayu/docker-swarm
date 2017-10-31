@@ -1,0 +1,71 @@
+version: "3.3"
+
+services:
+  app:
+    image: 127.0.0.1:5000/cluster_app
+    build:
+      context: .
+      dockerfile: app.docker
+    volumes:
+      - ../apollo:/var/www
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  web:
+    image: 127.0.0.1:5000/cluster_web
+    build:
+      context: .
+      dockerfile: web.docker
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../apollo:/var/www
+    depends_on:
+      - app
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  session:
+    image: memcached:latest
+    depends_on:
+      - app
+    deploy:
+      placement:
+        constraints: [node.role == worker, node.labels.name == worker]
+
+  cache:
+    image: 127.0.0.1:5000/cluster_cache
+    build:
+      context: .
+      dockerfile: cache.docker
+    depends_on:
+      - app
+    ports:
+      - "6379:6379"
+    deploy:
+      replicas: 3
+
+  database:
+    user: "1000:50"
+    image: mysql:latest
+    environment:
+      - MYSQL_DATABASE=
+      - MYSQL_USER=
+      - MYSQL_PASSWORD=
+      - MYSQL_ROOT_PASSWORD=
+    volumes:
+      - ./data/db:/var/lib/mysql
+    depends_on:
+      - app
+    deploy:
+      placement:
+        constraints: [node.role == worker, node.labels.name == worker]
+
+volumes:
+  database:
+    driver: "local"
+  cache:
+    driver: "local"
